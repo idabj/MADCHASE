@@ -68,12 +68,12 @@ first:
 	cd measure; west build -b nrf52833dk_nrf52833 -- -DCONF_FILE=prj.conf
 
 flash1:
-	cd measure west flash -i ${sid_module1}
+	cd measure; west flash -i ${sid_module1}
 	${MAKE} -f Makefile reset SID=${sid_module1}
 
 flash2:
-	cd measure; west flash -i ${sid_module1}
-	${MAKE} -f Makefile reset SID=${sid_module1}
+	cd measure; west flash -i ${sid_module2}
+	${MAKE} -f Makefile reset SID=${sid_module2}
 
 reset:
 	${nrfjprog} -p -s ${SID} && ${nrfjprog} -r -s ${SID}

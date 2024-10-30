@@ -20,10 +20,12 @@ def read_serial_data(serial_port, folder_path, baud_rate=115200, timeout=1):
     # Open a file to save the data
     with open(os.path.join(folder_path, "data_recorded.json"), "w") as file:
         try:
+            
+                
             with serial.Serial(serial_port, baud_rate, timeout=timeout) as ser:
                 print(f"Connected to {serial_port} at {baud_rate} baud.")
-                ser.write(b'A')  # Example write character
-
+                ser.write(b'i')
+                
                 try:
                     line = ser.readline().decode("utf-8").strip()
                     print(f"Received: {line}")

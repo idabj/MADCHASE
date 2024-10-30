@@ -1,7 +1,9 @@
 import os
 import datetime
+import serial
 from client import read_serial_data
 from dataprocessing import DataPlotter
+import time
 
 def main():
     # Create the top-level measurements folder
@@ -20,11 +22,22 @@ def main():
 
     os.makedirs(figures_folder, exist_ok=True)
 
-    # Serial port of the initiator
-    serial_port = '/dev/ttyACM0'
+    serial_port1 = '/dev/ttyACM0'
+    serial_port2 = '/dev/ttyACM1'
     
-    read_serial_data(serial_port, timestamped_folder)
+    baud_rate=115200
+    timeout=1
     
+    with serial.Serial(serial_port1, baud_rate, timeout=timeout) as ser:
+        print(f"Connected to {serial_port1} at {baud_rate} baud.")
+        ser.write(b'r')
+        line = ser.readline().decode("utf-8").strip()
+        print(f"Received: {line}")
+        
+                    
+    
+    read_serial_data(serial_port2, timestamped_folder)
+
     plotter = DataPlotter(data_file_path, figures_folder)
     plotter.plot_data()
 
