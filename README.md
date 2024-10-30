@@ -20,4 +20,4 @@ pip install pipreqs
 ```shell
 pipreqs .
 ```
-This command must be ran in the `runner\` directory.
+This command must be run in the `runner\` directory.
