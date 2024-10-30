@@ -42,6 +42,7 @@ endif
 
 sid_module1 = 685726740
 sid_module2 = 685526694
+sid_module3 = 685803465
 
 current_dir = $(shell pwd)
 
@@ -51,6 +52,7 @@ ifeq ($(OSFLAG),win)
 	pycmd = /usr/bin/python3
 	sid_module1 = 685726740
 	sid_module2 = 685526694
+	sid_module3 = 685803465
 
 
 else
@@ -74,6 +76,10 @@ flash1:
 flash2:
 	cd measure; west flash -i ${sid_module2}
 	${MAKE} -f Makefile reset SID=${sid_module2}
+
+flash3:
+	cd measure; west flash -i ${sid_module3}
+	${MAKE} -f Makefile reset SID=${sid_module3}
 
 reset:
 	${nrfjprog} -p -s ${SID} && ${nrfjprog} -r -s ${SID}

@@ -37,7 +37,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
 #ifndef TXD_PIN
 #define TXD_PIN 6
 #endif
@@ -46,12 +45,9 @@
 #define RXD_PIN 8
 #endif
 
-
-// Common functions, probably need to copy this file if you're on windows
 #include "dm.c"
 #include "uart.c"
 #include "roles.c"
-
 
 static nrf_dm_config_t dm_config;
 static nrf_dm_report_t dm_report;
@@ -67,19 +63,10 @@ int main(void)
 
   while(1){
     if (current_role == CMD_INITIATOR){
-      //uart_init();
-      //uart_put_string("Running initiator\n");
-      //uart_uninit();
       current_role = run_initiator();
     } else if (current_role == CMD_REFLECTOR){
-      //uart_init();
-      //uart_put_string("Running reflector\n");
-      //uart_uninit();
       current_role = run_reflector();
     } else if (current_role == CMD_NONE){
-      //uart_init();
-      //uart_put_string("Not active\n");
-      //uart_uninit();
       current_role = run_none();
     }
   }

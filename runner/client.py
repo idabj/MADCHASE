@@ -2,7 +2,8 @@ import serial
 import json
 import os
 
-def read_serial_data(serial_port, folder_path, baud_rate=115200, timeout=1):
+# Must happen last
+def set_initiator(serial_port, folder_path, baud_rate=115200, timeout=1):
     """
     Reads data from a serial port and saves it as JSON files in the specified folder.
 
@@ -25,7 +26,7 @@ def read_serial_data(serial_port, folder_path, baud_rate=115200, timeout=1):
             with serial.Serial(serial_port, baud_rate, timeout=timeout) as ser:
                 print(f"Connected to {serial_port} at {baud_rate} baud.")
                 ser.write(b'i')
-                
+
                 try:
                     line = ser.readline().decode("utf-8").strip()
                     print(f"Received: {line}")
@@ -55,3 +56,17 @@ def read_serial_data(serial_port, folder_path, baud_rate=115200, timeout=1):
     with open(os.path.join(folder_path, "data_recorded.json"), "w") as final_file:
         json.dump(data_records, final_file)
 
+
+def set_reflector(serial_port):
+    with serial.Serial(serial_port, 115200, timeout=1) as ser:
+        print(f"Connected to {serial_port}")
+        ser.write(b'r')
+        line = ser.readline().decode("utf-8").strip()
+        print(f"Received: {line}")
+        
+def set_none(serial_port):
+    with serial.Serial(serial_port, 115200, timeout=1) as ser:
+        print(f"Connected to {serial_port}")
+        ser.write(b'n')
+        line = ser.readline().decode("utf-8").strip()
+        print(f"Received: {line}")
