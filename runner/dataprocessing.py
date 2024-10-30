@@ -1,0 +1,231 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import json
+import os
+
+class DataPlotter:
+    value_max = 2 ** 13
+
+    def __init__(self, file_path, folder_path):
+        self.file_path = file_path
+        self.folder_path = folder_path
+        
+        # Initialize attributes for data
+        self.i_local = None
+        self.q_local = None
+        self.i_remote = None
+        self.q_remote = None
+        self.hopping_sequence = None
+        self.sinr_local = None
+        self.sinr_remote = None
+        self.fft = None
+        self.phase_slope = None
+        self.rssi_openspace = None
+        self.best = None
+        self.highprec = None
+        self.link_loss = None
+        self.duration = None
+        self.rssi_local = None
+        self.rssi_remote = None
+        self.txpwr_local = None
+        self.txpwr_remote = None
+        self.quality = None
+        
+        # Attributes for transfer functions and impulses
+        self.remote = None
+        self.local = None
+        self.transfer2 = None
+        self.transfer = None
+        self.impulse = None
+        self.impulse_x = None
+
+    def read_data(self):
+        """Read data from the specified JSON file and store it in instance variables."""
+        try:
+            with open(self.file_path, "r") as file:
+                data = json.load(file)  # Load the entire JSON data
+                record = data[0]  # Access the first (and only) record
+
+                # Extract relevant data into instance variables
+                self.i_local = np.array(record["i_local"])
+                self.q_local = np.array(record["q_local"])
+                self.i_remote = np.array(record["i_remote"])
+                self.q_remote = np.array(record["q_remote"])
+                self.hopping_sequence = np.array(record["hopping_sequence"])
+                self.sinr_local = np.array(record["sinr_local"])
+                self.sinr_remote = np.array(record["sinr_remote"])
+                self.fft = record["ifft[mm]"]
+                self.phase_slope = record["phase_slope[mm]"]
+                self.rssi_openspace = record["rssi_openspace[mm]"]
+                self.best = record["best[mm]"]
+                self.highprec = record["highprec[mm]"]
+                self.link_loss = record["link_loss[dB]"]
+                self.duration = record["duration[us]"]
+                self.rssi_local = record["rssi_local[dB]"]
+                self.rssi_remote = record["rssi_remote[dB]"]
+                self.txpwr_local = record["txpwr_local[dB]"]
+                self.txpwr_remote = record["txpwr_remote[dB]"]
+                self.quality = record["quality"]
+        except FileNotFoundError:
+            print("Error: File not found.")
+        except ValueError as e:
+            print(f"Error: Unable to read data from JSON file. {e}")
+
+    def calcTransfer2(self):
+        """Calculate the second transfer function."""
+        l = self.i_local + np.multiply(1j, self.q_local)
+        r = self.i_remote + np.multiply(1j, self.q_remote)
+        self.remote = r
+        self.local = l
+        self.transfer2 = np.multiply(l, r)
+
+    def calcTransfer(self):
+        """Calculate the transfer function."""
+        fstart = 4
+        fstop = 78
+
+        tr = np.zeros(len(self.transfer2), dtype=complex)
+        
+        # Do a linear regression to find an optimum slope
+        x = np.arange(fstart, fstop, 1)
+        ang = np.unwrap(np.angle(self.transfer2))
+        A = np.vstack([x, np.ones(len(x))]).T
+        xang = np.linalg.lstsq(A, ang[fstart:fstop], rcond=None)[0]
+        xall = np.arange(0, 80, 1)
+        th_ideal = xang[0] / 2 * xall + xang[1] / 2
+        smag = np.sqrt(np.abs(self.transfer2))
+        sang = ang / 2
+
+        for i in range(fstart, fstop):
+            at = th_ideal[i]
+            diff = sang[i] - th_ideal[i]
+            if diff > np.pi:
+                sang[i] = sang[i] - np.pi
+            elif diff < -np.pi:
+                sang[i] = sang[i] + np.pi
+
+        self.transfer = np.multiply(smag, np.exp(1j * sang))
+
+    def calcImpulse(self):
+        """Calculate the impulse response."""
+        N = 2048
+        yfft = np.fft.ifft(self.transfer, N)
+        yf = yfft[0:((int)(len(yfft) / 2))]
+        self.impulse = yf
+        self.impulse_x = np.arange(0, N / 2) / N / 1e6
+
+    def plot_signals(self):
+        """Create a single figure with all signals and save it."""
+        plt.figure(figsize=(10, 6))
+        plt.plot(self.i_local / self.value_max, linestyle="-", color="#B87333", label="i_local")
+        plt.plot(self.q_local / self.value_max, linestyle=":", color="#B87333", label="q_local")
+        plt.plot(self.i_remote / self.value_max, linestyle="-", color="#556B2F", label="i_remote")
+        plt.plot(self.q_remote / self.value_max, linestyle=":", color="#556B2F", label="q_remote")
+
+        plt.title("Recorded IQ Data Plot")
+        plt.xlabel("Sample Index")
+        plt.ylabel("Value")
+        plt.grid(True)
+        plt.legend()
+        
+        plot_path = os.path.join(self.folder_path, "iq_data_same_plot.svg")
+        plt.savefig(plot_path)
+        plt.close()
+
+    def plot_subplots(self):
+        """Create subplots for each signal and save the figure."""
+        fig, axs = plt.subplots(2, 2, figsize=(12, 5), sharex=True)
+        axs = axs.flatten()
+        fig.suptitle("First 80 Samples of Recorded IQ Data")
+
+        axs[0].plot(self.i_local / self.value_max, linestyle="-", color="#B87333")
+        axs[0].set_title("i_local")
+        axs[0].set_ylabel("Value")
+        axs[0].grid(True)
+
+        axs[1].plot(self.q_local / self.value_max, linestyle=":", color="#B87333")
+        axs[1].set_title("q_local")
+        axs[1].set_ylabel("Value")
+        axs[1].grid(True)
+
+        axs[2].plot(self.i_remote / self.value_max, linestyle="-", color="#556B2F")
+        axs[2].set_title("i_remote")
+        axs[2].set_ylabel("Value")
+        axs[2].grid(True)
+
+        axs[3].plot(self.q_remote / self.value_max, linestyle=":", color="#556B2F")
+        axs[3].set_title("q_remote")
+        axs[3].set_xlabel("Sample Index")
+        axs[3].set_ylabel("Value")
+        axs[3].grid(True)
+
+        plt.tight_layout()
+        subplot_path = os.path.join(self.folder_path, "IQ_data_separate_plot.svg")
+        plt.savefig(subplot_path)
+        plt.close()
+
+    def plot_impulses(self):
+        """Plot impulse responses using subplots (2x1)."""
+        fig, axs = plt.subplots(2, 1, figsize=(9, 8), sharex=True)
+        fig.suptitle("Impulse Responses")
+
+        if self.impulse is not None:
+            axs[0].plot(self.impulse_x, np.abs(self.impulse), color="#556B2F")
+            axs[0].set_title("Impulse Magnitude")
+            axs[0].set_ylabel("Magnitude")
+            axs[0].grid(True)
+
+            axs[1].plot(self.impulse_x, np.angle(self.impulse), color="#556B2F")
+            axs[1].set_title("Impulse Phase")
+            axs[1].set_ylabel("Phase (radians)")
+            axs[1].set_xlabel("Time (samples)")
+            axs[1].grid(True)
+
+        plt.tight_layout()
+        impulse_plot_path = os.path.join(self.folder_path, "impulse_responses.svg")
+        plt.savefig(impulse_plot_path)
+        plt.close()
+
+    def plot_transfer(self):
+        """Plot the transfer function using subplots (2x1)."""
+        fig, axs = plt.subplots(2, 1, figsize=(9, 8), sharex=True)
+        fig.suptitle("Transfer Function")
+
+        if self.transfer is not None:
+            # Define frequency array
+            N = len(self.transfer)
+            sample_rate = 1e6  # Adjust this based on your actual sample rate
+            frequency = np.fft.fftfreq(N, d=1/sample_rate)
+
+            axs[0].plot(frequency[:N//2]*10**(-6), np.abs(self.transfer)[:N//2], color='#556B2F')
+            axs[0].set_title("Transfer Function Magnitude")
+            axs[0].set_ylabel("Magnitude")
+            axs[0].grid(True)
+
+            axs[1].plot(frequency[:N//2]*10**(-6), np.angle(self.transfer)[:N//2], color='#556B2F')
+            axs[1].set_title("Transfer Function Phase")
+            axs[1].set_xlabel("Frequency (MHz)")
+            axs[1].set_ylabel("Phase (radians)")
+            axs[1].grid(True)
+
+        plt.tight_layout()
+        transfer_plot_path = os.path.join(self.folder_path, "transfer_function.svg")
+        plt.savefig(transfer_plot_path)
+        plt.close()
+
+
+    def plot_data(self):
+        """Main function to read data and plot it."""
+        self.read_data()
+        if self.i_local is not None:  # Check if data was read successfully
+            self.calcTransfer2()
+            self.calcTransfer()
+            self.calcImpulse()
+            self.plot_signals()
+            self.plot_subplots()
+            self.plot_impulses()
+            self.plot_transfer()
+
+# Example usage:
+# plotter = DataPlotter("data_recorded.json", "figures/")
+# plotter.plot_data()
