@@ -11,3 +11,13 @@ source env/bin/activate
 ```shell
 pip install -r requirements.txt
 ```
+
+### Create `requirements.txt`
+```shell
+pip install pipreqs
+```
+
+```shell
+pipreqs .
+```
+This command must be ran in the `runner\` directory.
