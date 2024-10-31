@@ -3,7 +3,7 @@ import json
 import os
 
 # Must happen last
-def set_initiator(serial_port, folder_path, baud_rate=115200, timeout=1):
+def set_initiator(serial_port, folder_path, measurement_number, baud_rate=115200, timeout=1):
     """
     Reads data from a serial port and saves it as JSON files in the specified folder.
 
@@ -19,7 +19,7 @@ def set_initiator(serial_port, folder_path, baud_rate=115200, timeout=1):
     os.makedirs(folder_path, exist_ok=True)
 
     # Open a file to save the data
-    with open(os.path.join(folder_path, "data_recorded.json"), "w") as file:
+    with open(os.path.join(folder_path, f"data_measurement_{measurement_number}.json"), "w") as file:
         try:
             
                 
@@ -53,7 +53,7 @@ def set_initiator(serial_port, folder_path, baud_rate=115200, timeout=1):
         finally:
             print("Serial port closed.")
 
-    with open(os.path.join(folder_path, "data_recorded.json"), "w") as final_file:
+    with open(os.path.join(folder_path, f"data_measurement_{measurement_number}.json"), "w") as final_file:
         json.dump(data_records, final_file)
 
 

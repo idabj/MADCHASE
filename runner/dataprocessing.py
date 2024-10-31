@@ -6,9 +6,10 @@ import os
 class DataPlotter:
     value_max = 2 ** 13
 
-    def __init__(self, file_path, folder_path):
+    def __init__(self, file_path, folder_path, measurement_number):
         self.file_path = file_path
         self.folder_path = folder_path
+        self.measurement_number = measurement_number
         
         # Initialize attributes for data
         self.i_local = None
@@ -72,7 +73,7 @@ class DataPlotter:
             print(f"Error: Unable to read data from JSON file. {e}")
 
     def calcTransfer2(self):
-        """Calculate the second transfer function."""
+        """Calculate the transfer function squared."""
         l = self.i_local + np.multiply(1j, self.q_local)
         r = self.i_remote + np.multiply(1j, self.q_remote)
         self.remote = r
@@ -128,7 +129,7 @@ class DataPlotter:
         plt.grid(True)
         plt.legend()
         
-        plot_path = os.path.join(self.folder_path, "iq_data_same_plot.svg")
+        plot_path = os.path.join(self.folder_path, f"iq_data_same_plot_meas{self.measurement_number}.svg")
         plt.savefig(plot_path)
         plt.close()
 
@@ -160,7 +161,7 @@ class DataPlotter:
         axs[3].grid(True)
 
         plt.tight_layout()
-        subplot_path = os.path.join(self.folder_path, "IQ_data_separate_plot.svg")
+        subplot_path = os.path.join(self.folder_path, f"IQ_data_separate_plot_meas{self.measurement_number}.svg")
         plt.savefig(subplot_path)
         plt.close()
 
@@ -182,7 +183,7 @@ class DataPlotter:
             axs[1].grid(True)
 
         plt.tight_layout()
-        impulse_plot_path = os.path.join(self.folder_path, "impulse_responses.svg")
+        impulse_plot_path = os.path.join(self.folder_path, f"impulse_responses_meas{self.measurement_number}.svg")
         plt.savefig(impulse_plot_path)
         plt.close()
 
@@ -209,7 +210,7 @@ class DataPlotter:
             axs[1].grid(True)
 
         plt.tight_layout()
-        transfer_plot_path = os.path.join(self.folder_path, "transfer_function.svg")
+        transfer_plot_path = os.path.join(self.folder_path, f"transfer_function_meas{self.measurement_number}.svg")
         plt.savefig(transfer_plot_path)
         plt.close()
 
