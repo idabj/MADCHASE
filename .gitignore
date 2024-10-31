@@ -1,5 +1,5 @@
 runner/measurements/
-
+.vscode/
 # Prerequisites
 *.d
 
