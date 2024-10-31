@@ -20,14 +20,14 @@ graph LR;
 | Channel 3         | initiator | none      | reflector |
 
 ```mermaid
-graph TD;
-    A[DK1];
-    B[DK2];
-    C[DK3];
+flowchart LR;
+    A(DK1);
+    B(DK2);
+    C(DK3);
 
-    A<-->B;
-    B<-->C;
-    c<-->A;
+    A<--ch1-->B;
+    B<--ch2-->C;
+    C<--ch3-->A;
 ```
 
 
@@ -62,3 +62,16 @@ This command must be run in the `runner\` directory.
 
 ## IQ Sampler
 Firmware for the DKs. Reads UART for roles, then performs the measurements.
+
+
+### Development
+Follow this guide https://docs.nordicsemi.com/bundle/ncs-2.4.3/page/nrf/getting_started/installing.html for installing the SDK and toolchain.
+
+SDK: v2.7.0
+Toolchain: v2.7.0
+
+Add the correct SIDs to the Makefile. Then build and flash within `iq_sampler\`. Make sure to connect all devices before running the command, or alter the command.
+
+```shell
+make first && make flash1 && make flash2 && make flash3
+```
