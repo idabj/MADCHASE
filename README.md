@@ -32,7 +32,7 @@ flowchart LR;
 
 
 ### Setting up the environment
-Make virtual environment for python in the folder runner/ and install necessary packages.
+Make virtual environment for python in the folder `runner/` and install necessary packages.
 ```shell
 python3 -m venv env
 ```
@@ -45,6 +45,7 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
+### Measure
 Run `main.py`, this sends a message to the initiator over uart which tells it to start a measurement. The results are then sent with uart to the laptop. The script then saves the data to json, and plots. Each measurement with its files are saved into separate folders by timestamp. Both reflector and initiator must be connected to the laptop with USB.
 
 <!---
@@ -68,6 +69,7 @@ Firmware for the DKs. Reads UART for roles, then performs the measurements.
 Follow this guide https://docs.nordicsemi.com/bundle/ncs-2.4.3/page/nrf/getting_started/installing.html for installing the SDK and toolchain.
 
 SDK: v2.7.0
+
 Toolchain: v2.7.0
 
 Add the correct SIDs to the Makefile. Then build and flash within `iq_sampler\`. Make sure to connect all devices before running the command, or alter the command.
