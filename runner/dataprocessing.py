@@ -39,9 +39,11 @@ class DataPlotter:
         self.transfer = None
         self.impulse = None
         self.impulse_x = None
+        self.delaySpread = None
+        self.delaySpread2 = None
 
     def read_data(self):
-        """Read data from the specified JSON file and store it in instance variables."""
+        """Read data from the specified JSON file"""
         try:
             with open(self.file_path, "r") as file:
                 data = json.load(file)  # Load the entire JSON data
@@ -72,8 +74,7 @@ class DataPlotter:
         except ValueError as e:
             print(f"Error: Unable to read data from JSON file. {e}")
 
-    def calcTransfer2(self):
-        """Calculate the transfer function squared."""
+    def calcTransfer2(self):    # Squared tranfer function
         l = self.i_local + np.multiply(1j, self.q_local)
         r = self.i_remote + np.multiply(1j, self.q_remote)
         self.remote = r
@@ -81,7 +82,6 @@ class DataPlotter:
         self.transfer2 = np.multiply(l, r)
 
     def calcTransfer(self):
-        """Calculate the transfer function."""
         fstart = 4
         fstop = 78
 
@@ -108,15 +108,53 @@ class DataPlotter:
         self.transfer = np.multiply(smag, np.exp(1j * sang))
 
     def calcImpulse(self):
-        """Calculate the impulse response."""
         N = 2048
         yfft = np.fft.ifft(self.transfer, N)
         yf = yfft[0:((int)(len(yfft) / 2))]
         self.impulse = yf
         self.impulse_x = np.arange(0, N / 2) / N / 1e6
 
+    def calcDelaySpread(self):
+        y = self.impulse
+        s = np.abs(y**2)
+        s = s / np.max(s)
+
+        # Remove the lowest values. They are likely artifacts of IFFT.
+        s[s < 0.01] = 0
+
+        pwr = np.sum(s)
+        p1 = np.sum(np.multiply(s, self.impulse_x))
+        p2 = np.sum(np.multiply(s, self.impulse_x**2))
+        rms = np.sqrt(p2/pwr - (p1/pwr)**2)
+
+        self.delaySpread = rms
+
+    def calcDelaySpread2(self): # Squared delay spread function
+        s = np.abs(self.impulse2)**2
+
+        pwr = np.sum(s)
+        p1 = np.sum(np.multiply(s, self.impulse2_x))
+        p2 = np.sum(np.multiply(s, self.impulse2_x**2))
+        rms = np.sqrt(p2/pwr - (p1/pwr)**2)
+
+        self.delaySpread2 = rms
+
+    def plot_delay_spreads(self):
+        plt.figure(figsize=(8, 5))
+
+        delay_spreads = [self.delaySpread, self.delaySpread2]
+        labels = ['Delay Spread 1', 'Delay Spread 2']
+        
+        plt.bar(labels, delay_spreads, color=['#556B2F', '#B87333'])
+        plt.title("RMS Delay Spreads")
+        plt.ylabel("RMS Delay Spread (samples)")
+        plt.grid(axis='y')
+
+        delay_spread_plot_path = os.path.join(self.folder_path, f"delay_spreads_meas{self.measurement_number}.svg")
+        plt.savefig(delay_spread_plot_path)
+        plt.close()
+
     def plot_signals(self):
-        """Create a single figure with all signals and save it."""
         plt.figure(figsize=(10, 6))
         plt.plot(self.i_local / self.value_max, linestyle="-", color="#B87333", label="i_local")
         plt.plot(self.q_local / self.value_max, linestyle=":", color="#B87333", label="q_local")
@@ -134,7 +172,6 @@ class DataPlotter:
         plt.close()
 
     def plot_subplots(self):
-        """Create subplots for each signal and save the figure."""
         fig, axs = plt.subplots(2, 2, figsize=(12, 5), sharex=True)
         axs = axs.flatten()
         fig.suptitle("First 80 Samples of Recorded IQ Data")
@@ -166,7 +203,6 @@ class DataPlotter:
         plt.close()
 
     def plot_impulses(self):
-        """Plot impulse responses using subplots (2x1)."""
         fig, axs = plt.subplots(2, 1, figsize=(9, 8), sharex=True)
         fig.suptitle("Impulse Responses")
 
@@ -188,7 +224,6 @@ class DataPlotter:
         plt.close()
 
     def plot_transfer(self):
-        """Plot the transfer function using subplots (2x1)."""
         fig, axs = plt.subplots(2, 1, figsize=(9, 8), sharex=True)
         fig.suptitle("Transfer Function")
 
@@ -214,18 +249,19 @@ class DataPlotter:
         plt.savefig(transfer_plot_path)
         plt.close()
 
-
     def plot_data(self):
-        """Main function to read data and plot it."""
         self.read_data()
-        if self.i_local is not None:  # Check if data was read successfully
+        if self.i_local is not None:  
             self.calcTransfer2()
             self.calcTransfer()
             self.calcImpulse()
+            self.calcDelaySpread()
+            self.calcDelaySpread2()
             self.plot_signals()
             self.plot_subplots()
             self.plot_impulses()
             self.plot_transfer()
+            self.plot_delay_spreads()
 
 # Example usage:
 # plotter = DataPlotter("data_recorded.json", "figures/")

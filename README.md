@@ -1,6 +1,6 @@
 
 # MaDChaSE
-This repository contain software for perfoming channel estimation using three nRF52833 Development kits (DK) and a PC. The firmware for the DKs are in `iq_samples\`and the software performing and analysing the measurements are in `runner\`. 
+This repository contain software for perfoming channel estimation using three nRF52833 Development kits (DK) and a PC. The firmware for the DKs are in `iq_sampler\`and the software performing and analysing the measurements are in `runner\`. 
 
 ## Runner
 Python script that starts the measurement procedure and stores the result in timestamped folders. Each measurement are processed the same way.
