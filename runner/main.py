@@ -48,9 +48,9 @@ def main():
         set_initiator(serial_port1, timestamped_folder, measurement_number=3)
 
         # Plot data for each measurement
-        for data_file_path, i in zip(data_file_paths, range(len(data_file_paths))):
-            plotter = DataPlotter(data_file_path, timestamped_folder, i + 1)
-            plotter.plot_data()
+        #for data_file_path, i in zip(data_file_paths, range(len(data_file_paths))):
+        #    plotter = DataPlotter(data_file_path, timestamped_folder, i + 1)
+        #    plotter.plot_data()
 
 
 if __name__ == "__main__":
