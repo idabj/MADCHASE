@@ -1,8 +1,45 @@
 import os
 import datetime
+import subprocess
 from client import set_initiator, set_reflector, set_none
 from dataprocessing import DataPlotter
 
+
+def disable_wifi():
+    """Disables Wi-Fi on the Raspberry Pi"""
+    try:
+        # Disable Wi-Fi using rfkill
+        subprocess.run(["sudo", "rfkill", "block", "wifi"], check=True)
+        print("Wi-Fi has been disabled.")
+    except subprocess.CalledProcessError:
+        print("Failed to disable Wi-Fi.")
+
+def disable_bluetooth():
+    """Disables Bluetooth on the Raspberry Pi"""
+    try:
+        # Disable Bluetooth using rfkill
+        subprocess.run(["sudo", "rfkill", "block", "bluetooth"], check=True)
+        print("Bluetooth has been disabled.")
+    except subprocess.CalledProcessError:
+        print("Failed to disable Bluetooth.")
+
+def enable_wifi():
+    """Enables Wi-Fi on the Raspberry Pi"""
+    try:
+        # Enable Wi-Fi using rfkill
+        subprocess.run(["sudo", "rfkill", "unblock", "wifi"], check=True)
+        print("Wi-Fi has been enabled.")
+    except subprocess.CalledProcessError:
+        print("Failed to enable Wi-Fi.")
+
+def enable_bluetooth():
+    """Enables Bluetooth on the Raspberry Pi"""
+    try:
+        # Enable Bluetooth using rfkill
+        subprocess.run(["sudo", "rfkill", "unblock", "bluetooth"], check=True)
+        print("Bluetooth has been enabled.")
+    except subprocess.CalledProcessError:
+        print("Failed to enable Bluetooth.")
 
 def main():
     # Get user inputs
@@ -12,6 +49,10 @@ def main():
     # Create the top-level folder for the measurement
     base_folder = os.path.join("measurements", measurement_name)
     os.makedirs(base_folder, exist_ok=True)
+
+    # Disable Wi-Fi and Bluetooth before starting measurements
+    disable_wifi()
+    disable_bluetooth()
 
     # Loop N times to perform the measurements
     for i in range(N):
@@ -47,11 +88,14 @@ def main():
         set_reflector(serial_port3)
         set_initiator(serial_port1, timestamped_folder, measurement_number=3)
 
-        # Plot data for each measurement
-        #for data_file_path, i in zip(data_file_paths, range(len(data_file_paths))):
-        #    plotter = DataPlotter(data_file_path, timestamped_folder, i + 1)
-        #    plotter.plot_data()
+        # Plot data for each measurement (optional)
+        # for data_file_path, i in zip(data_file_paths, range(len(data_file_paths))):
+        #     plotter = DataPlotter(data_file_path, timestamped_folder, i + 1)
+        #     plotter.plot_data()
 
+    # Re-enable Wi-Fi and Bluetooth after measurements (optional)
+    #enable_wifi()
+    #enable_bluetooth()
 
 if __name__ == "__main__":
     main()
