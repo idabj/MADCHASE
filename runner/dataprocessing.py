@@ -107,6 +107,14 @@ class DataPlotter:
 
         self.transfer = np.multiply(smag, np.exp(1j * sang))
 
+
+    def calcImpulse2(self):
+        N = 2048
+        yfft = np.fft.ifft(self.transfer2,N)
+        yf = yfft[0:((int)(len(yfft)/2))]
+        self.impulse2 = yf
+        self.impulse2_x = np.arange(0,N/2)/N/2/1e6
+
     def calcImpulse(self):
         N = 2048
         yfft = np.fft.ifft(self.transfer, N)
