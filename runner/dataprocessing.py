@@ -7,11 +7,11 @@ class DataPlotter:
     value_max = 2 ** 13
 
     def __init__(self, file_path, folder_path, measurement_number):
-        self.file_path = file_path
-        self.folder_path = folder_path
-        self.measurement_number = measurement_number
+        self.file_path = file_path  # JSON file
+        self.folder_path = folder_path  # Where to save plots
+        self.measurement_number = measurement_number # Used for creating plot with correct name
         
-        # Initialize attributes for data
+        # Initialize attributes for datameasurement_number
         self.i_local = None
         self.q_local = None
         self.i_remote = None
@@ -70,11 +70,11 @@ class DataPlotter:
                 self.txpwr_remote = record["txpwr_remote[dB]"]
                 self.quality = record["quality"]
         except FileNotFoundError:
-            print("Error: File not found.")
+            print(f"Error: File not found at {self.file_path}.")
         except ValueError as e:
             print(f"Error: Unable to read data from JSON file. {e}")
 
-    def calcTransfer2(self):    # Squared tranfer function
+    def calcTransfer2(self):    # Squared transfer function
         l = self.i_local + np.multiply(1j, self.q_local)
         r = self.i_remote + np.multiply(1j, self.q_remote)
         self.remote = r
@@ -113,6 +113,13 @@ class DataPlotter:
         yf = yfft[0:((int)(len(yfft) / 2))]
         self.impulse = yf
         self.impulse_x = np.arange(0, N / 2) / N / 1e6
+        
+    def calcImpulse2(self):
+        N = 2048
+        yfft = np.fft.ifft(self.transfer2, N)
+        yf = yfft[0:((int))(len(yfft)/2)]
+        self.impulse2 = yf
+        self.impulse2_x = np.arange(0, N/2)/N/2/1e6
 
     def calcDelaySpread(self):
         y = self.impulse
@@ -129,7 +136,7 @@ class DataPlotter:
 
         self.delaySpread = rms
 
-    def calcDelaySpread2(self): # Squared delay spread function
+    def calcDelaySpread2(self):  # Squared delay spread function
         s = np.abs(self.impulse2)**2
 
         pwr = np.sum(s)
@@ -203,20 +210,32 @@ class DataPlotter:
         plt.close()
 
     def plot_impulses(self):
-        fig, axs = plt.subplots(2, 1, figsize=(9, 8), sharex=True)
+        fig, axs = plt.subplots(1, 1, figsize=(8, 4), sharex=True)
         fig.suptitle("Impulse Responses")
 
         if self.impulse is not None:
-            axs[0].plot(self.impulse_x, np.abs(self.impulse), color="#556B2F")
-            axs[0].set_title("Impulse Magnitude")
-            axs[0].set_ylabel("Magnitude")
-            axs[0].grid(True)
+            # Plot the magnitude of the impulse response
+            y =  np.abs(self.impulse**2)
+            y =  y/np.max(y)
+            
+            axs.plot(self.impulse_x*10**9, y, color="#556B2F", label="Impulse Magnitude")
+            
+            # Find the index of the maximum value (argmax)
+            max_idx = np.argmax(y)
+            max_value = y[max_idx]
+            max_time = self.impulse_x[max_idx]
 
-            axs[1].plot(self.impulse_x, np.angle(self.impulse), color="#556B2F")
-            axs[1].set_title("Impulse Phase")
-            axs[1].set_ylabel("Phase (radians)")
-            axs[1].set_xlabel("Time (samples)")
-            axs[1].grid(True)
+            # Mark the argmax on the plot
+            axs.scatter(max_time*10**9, max_value, color='red', zorder=5)  # Mark the point
+            axs.text(max_time*10**9, max_value, f'  max = {max_time*10**9:.2f}', color='red')  # Annotate the point
+
+            axs.set_title("Impulse Magnitude")
+            axs.set_ylabel("Magnitude")
+            axs.set_xlabel("Time [ns]")
+            axs.grid(True)
+            
+
+
 
         plt.tight_layout()
         impulse_plot_path = os.path.join(self.folder_path, f"impulse_responses_meas{self.measurement_number}.svg")
@@ -255,13 +274,14 @@ class DataPlotter:
             self.calcTransfer2()
             self.calcTransfer()
             self.calcImpulse()
-            self.calcDelaySpread()
-            self.calcDelaySpread2()
+            self.calcImpulse2()
+            #self.calcDelaySpread()
+            #self.calcDelaySpread2()
             self.plot_signals()
             self.plot_subplots()
             self.plot_impulses()
             self.plot_transfer()
-            self.plot_delay_spreads()
+            #self.plot_delay_spreads()
 
 # Example usage:
 # plotter = DataPlotter("data_recorded.json", "figures/")
