@@ -1,8 +1,7 @@
-import serial
-import json
 import os
+import json
+import serial
 
-# Must happen last
 def set_initiator(serial_port, folder_path, measurement_number, baud_rate=115200, timeout=1):
     """
     Reads data from a serial port and saves it as JSON files in the specified folder.
@@ -16,45 +15,58 @@ def set_initiator(serial_port, folder_path, measurement_number, baud_rate=115200
     data_records = []  # List to store parsed JSON data
 
     # Ensure the folder exists
-    os.makedirs(folder_path, exist_ok=True)
+    #os.makedirs(folder_path, exist_ok=True)
 
-    # Open a file to save the data
-    with open(os.path.join(folder_path, f"data_measurement_{measurement_number}.json"), "w") as file:
-        try:
-            
-                
-            with serial.Serial(serial_port, baud_rate, timeout=timeout) as ser:
-                print(f"Connected to {serial_port} at {baud_rate} baud.")
-                ser.write(b'i')
+    # Construct the file path
+    file_path = folder_path
+    
+    # Check if the path is a directory (instead of a file) before opening
+    if os.path.isdir(file_path):
+        print(f"Error: {file_path} is a directory, not a file!")
+        return  # Exit the function early to avoid further issues
 
-                try:
-                    line = ser.readline().decode("utf-8").strip()
-                    print(f"Received: {line}")
+    try:
+        # Open the file for writing data
+        with open(file_path, "w") as file:
+            try:
+                # Open serial connection
+                with serial.Serial(serial_port, baud_rate, timeout=timeout) as ser:
+                    print(f"Connected to {serial_port} at {baud_rate} baud.")
+                    ser.write(b'i')
 
-                    # Parse JSON data
-                    data = json.loads(line)  # Expecting a JSON object
+                    try:
+                        line = ser.readline().decode("utf-8").strip()
+                        print(f"Received: {line}")
 
-                    # Store data in the list
-                    data_records.append(data)
+                        # Parse JSON data
+                        data = json.loads(line)  # Expecting a JSON object
 
-                    # Write to file
-                    json.dump(data, file)
-                    file.write("\n")  # Write a newline for separation
+                        # Store data in the list
+                        data_records.append(data)
 
-                except json.JSONDecodeError:
-                    print(f"Invalid JSON format: {line}")
-                except Exception as e:
-                    print(f"Error reading from serial port: {e}")
+                        # Write to file
+                        json.dump(data, file)
+                        file.write("\n")  # Write a newline for separation
 
-        except serial.SerialException as e:
-            print(f"Error opening serial port: {e}")
-        except KeyboardInterrupt:
-            print("Exiting...")
-        finally:
-            print("Serial port closed.")
+                    except json.JSONDecodeError:
+                        print(f"Invalid JSON format: {line}")
+                    except Exception as e:
+                        print(f"Error reading from serial port: {e}")
 
-    with open(os.path.join(folder_path, f"data_measurement_{measurement_number}.json"), "w") as final_file:
-        json.dump(data_records, final_file)
+            except serial.SerialException as e:
+                print(f"Error opening serial port: {e}")
+            except KeyboardInterrupt:
+                print("Exiting...")
+            finally:
+                print("Serial port closed.")
+        
+        # Write the complete list of data records at the end
+        with open(file_path, "w") as final_file:
+            json.dump(data_records, final_file)
+
+    except IOError as e:
+        print(f"Error writing to file {file_path}: {e}")
+
 
 
 def set_reflector(serial_port):
