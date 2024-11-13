@@ -3,6 +3,8 @@ import glob
 import logging
 from dataprocessing import DataPlotter
 import re
+import json
+import numpy as np
 
 logging.basicConfig(
     format="{asctime}-{levelname}-{message}",
@@ -45,8 +47,8 @@ def change_plots(measurement_name):
             plotter = DataPlotter(file_path_json, folder_path_plot, measurement_number)
 
             plotter.plot_data()
-    
-    
+
+            
 pattern = os.path.join("measurements/", "*/")
 measurement_folders = glob.glob(pattern)
 
