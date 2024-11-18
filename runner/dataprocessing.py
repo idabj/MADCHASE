@@ -106,6 +106,7 @@ class DataPlotter:
                 sang[i] = sang[i] + np.pi
 
         self.transfer = np.multiply(smag, np.exp(1j * sang))
+        self.sang = sang
 
 
     def calcImpulse2(self):

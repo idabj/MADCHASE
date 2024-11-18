@@ -6,6 +6,7 @@ import re
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import scipy.signal as signal
+from algorithms import *
 
 logging.basicConfig(level=logging.INFO)
 class Measurement:
@@ -212,7 +213,7 @@ class MeasurementProcessor:
         """Calculate the transfer function with phase correction."""
         fstart = 4
         fstop = 78
-        
+               
         tr = np.zeros(len(self.transfer2), dtype=complex)
 
         # Linear regression to find optimum phase slope
@@ -234,8 +235,9 @@ class MeasurementProcessor:
             elif diff < -np.pi:
                 sang[i] = sang[i] + np.pi
 
-        self.transfer = np.multiply(smag, np.exp(1j * sang))  # Corrected transfer function
-
+        self.transfer = np.multiply(smag, np.exp(1j * sang))  # Corrected transfer function 
+        self.sang = sang
+        
     def calcImpulse(self):
         """Calculate the impulse response."""
         N = 2048  # Length of FFT
@@ -249,10 +251,35 @@ class MeasurementProcessor:
         self.impulse = yf
         self.impulse_x = np.arange(0, N / 2) / N / 1e6  # Time in microseconds
         return self.impulse, self.impulse_x
-
+    
+    def get_transfer(self, index, channel):
+        """Get the transfer function for a specific measurement index."""
+        iq_data = self.get_IQ(index)[channel]  
+        if iq_data is None:
+            logging.error("Failed to get IQ data.")
+            return None
+        
+        # Extract I/Q data for local and remote channels
+        self.i_local, self.q_local, self.i_remote, self.q_remote = iq_data
+        
+        # Step 1: Calculate the transfer function
+        self.calcTransfer2()
+        self.calcTransfer()
+        # Define frequency array
+        N = len(self.transfer)
+        sample_rate = 1e6  # Adjust this based on your actual sample rate
+        frequency_vector = np.fft.fftshift(np.fft.fftfreq(N, d=1/sample_rate))
+        frequency_vector += abs(np.min(frequency_vector))
+        
+        
+        logging.info(f"Frequency vector: {frequency_vector.shape} Transfer: {self.transfer.shape}")
+        
+        #self.transfer = np.roll(self.transfer, N//2)
+        return frequency_vector, self.transfer, self.sang
+    
     def get_impulse(self, index, channel):
         """Get the impulse response for a specific measurement index."""
-        iq_data = self.get_IQ(index)[channel]  # This is assuming get_IQ is implemented
+        iq_data = self.get_IQ(index)[channel]  
         if iq_data is None:
             logging.error("Failed to get IQ data.")
             return None
@@ -289,6 +316,7 @@ def plot_constellation(BASE_DIR, measurement_name, colors=['tab:blue', 'tab:gree
     num_meas = len(meas_processor.folder.list_files()) / 3
     
     channels = [0, 1, 2]  # CH1, CH2, CH3
+    devices = [(1,3), (3,2), (2,1)]
     
     for i, channel in enumerate(channels):
         # Plot constellation for each measurement in the channel
@@ -307,17 +335,21 @@ def plot_constellation(BASE_DIR, measurement_name, colors=['tab:blue', 'tab:gree
             ax[0,i].scatter(i_remote, q_remote, color=colors[i], s=5, alpha=0.2)  # scatter plot for the local I/Q
             
         # Customize the plot for this channel
-        ax[1,i].set_xlabel("In-Phase (I)")
-        ax[1,i].set_ylabel("Quadrature (Q)")
-        ax[1,i].set_title(f"Channel {channel + 1} Local")
-        ax[1,i].grid(True)
-        ax[1,i].set_aspect('equal')  # To make sure the axes have the same scale
-        
         ax[0,i].set_xlabel("In-Phase (I)")
         ax[0,i].set_ylabel("Quadrature (Q)")
-        ax[0,i].set_title(f"Channel {channel + 1} Remote")
-        ax[0,i].grid(True)
+        ax[0,i].set_title(f"Channel {channel + 1} Local\nDevice {devices[channel][0]}")
         ax[0,i].set_aspect('equal')  # To make sure the axes have the same scale
+        ax[0,i].set_xlim([-9000, 9000])
+        ax[0,i].set_ylim([-9000, 9000])
+        ax[0,i].grid(True)
+        
+        ax[1,i].set_xlabel("In-Phase (I)")
+        ax[1,i].set_ylabel("Quadrature (Q)")
+        ax[1,i].set_title(f"Channel {channel + 1} Remote\nDevice {devices[channel][1]}")
+        ax[1,i].set_aspect('equal')  # To make sure the axes have the same scale
+        ax[1,i].set_xlim([-9000, 9000])
+        ax[1,i].set_ylim([-9000, 9000])
+        ax[1,i].grid(True)
 
 
     # Save the figure
@@ -369,12 +401,87 @@ def plot_time_domain(BASE_DIR, measurement_name, colors=['tab:blue', 'tab:green'
         ax[0,i].grid(True)
         ax[0,i].set_xlim([5,10])
 
-
     # Save the figure
     fig.savefig(save_folder_path+f"time_domain_{measurement_name}.png", dpi=400)
+    
 
+def plot_transfer(BASE_DIR, measurement_name, linestyles=['-', '--'], colors=['tab:blue', 'tab:green', 'tab:red']):
+    fig, ax = plt.subplots(3, 2, figsize=(12, 12), constrained_layout=True)
+    fig.suptitle(f"Measurement '{measurement_name}'")
+    meas_processor = MeasurementProcessor(BASE_DIR, measurement_name)
+    num_meas = len(meas_processor.folder.list_files()) / 3
+    
+    channels = [0, 1, 2]  # CH1, CH2, CH3
+    
+    for i, channel in enumerate(channels):
+        channel_avg_mag = np.zeros_like(meas_processor.get_transfer(0, channel)[1])
+        channel_avg_phase = np.zeros_like(meas_processor.get_transfer(0, channel)[2])
+        all_transfers_mag = []
+        all_transfers_phase = []
+        frequency_vector = None
+        
+        for k in range(int(num_meas)):
+            frequency, transfer_mag, transfer_phase = meas_processor.get_transfer(k, channel)
+            if frequency_vector is None:
+                frequency_vector = frequency
 
+            transfer_mag_db = 20*np.log10(abs(transfer_mag/np.max(transfer_mag)))
+            transfer_mag_db = transfer_mag_db - np.max(transfer_mag_db)
+            all_transfers_mag.append(transfer_mag_db)
+            all_transfers_phase.append(transfer_phase)
 
+            # Plot individual measurements in gray
+            ax[i, 0].plot(frequency_vector*10**(-6), transfer_mag_db, linestyles[1], color="gray", alpha=0.2)
+            ax[i, 1].plot(frequency_vector*10**(-6), transfer_phase, linestyles[1], color="gray", alpha=0.2)
+
+        # Convert to numpy arrays
+        all_transfers_mag = np.array(all_transfers_mag)
+        all_transfers_phase = np.array(all_transfers_phase)
+        
+        # Calculate standard deviation and average
+        channel_std_mag = np.std(all_transfers_mag, axis=0)
+        channel_avg_mag = np.average(all_transfers_mag, axis=0)
+        channel_std_phase = np.std(all_transfers_phase, axis=0)
+        channel_avg_phase = np.average(all_transfers_phase, axis=0)
+
+        # Plot magnitude
+        ax[i, 0].plot(frequency_vector*10**(-6), channel_avg_mag, color=colors[i], label="Average")
+        ax[i, 0].fill_between(frequency_vector*10**(-6), 
+                              (channel_avg_mag - channel_std_mag), 
+                              (channel_avg_mag + channel_std_mag), 
+                              color=colors[i], alpha=0.2, label="Standard Deviation")
+        
+        # Plot phase
+        ax[i, 1].plot(frequency_vector*10**(-6), channel_avg_phase, color=colors[i], label="Average")
+        ax[i, 1].fill_between(frequency_vector*10**(-6), 
+                              (channel_avg_phase - channel_std_phase), 
+                              (channel_avg_phase + channel_std_phase), 
+                              color=colors[i], alpha=0.2, label="Standard Deviation")
+        
+        # Magnitude plot settings
+        ax[i, 0].set_ylim([-5, 0.5])
+        ax[i, 0].set_xlabel("Frequency (MHz)")
+        ax[i, 0].set_ylabel(r"Magnitude $|H(f)|$ [dB]")
+        ax[i, 0].set_title(f"Channel {channel+1} Magnitude")
+        ax[i, 0].grid(which='major', linestyle='-', linewidth='0.5', color='gray')
+        ax[i, 0].grid(which='minor', linestyle=':', linewidth='0.5', color='gray', alpha=0.7)
+        ax[i, 0].minorticks_on()
+        ax[i, 0].legend()
+        
+        # Phase plot settings
+        ax[i, 1].set_ylim([-9, 3])
+        ax[i, 1].set_xlabel("Frequency (MHz)")
+        ax[i, 1].set_ylabel("Phase [radians]")
+        ax[i, 1].set_title(f"Channel {channel+1} Phase")
+        ax[i, 1].grid(which='major', linestyle='-', linewidth='0.5', color='gray')
+        ax[i, 1].grid(which='minor', linestyle=':', linewidth='0.5', color='gray', alpha=0.7)
+        ax[i, 1].minorticks_on()
+        ax[i, 1].legend()
+        
+    # Save the figure
+    fig.savefig(save_folder_path+f"transfer_{measurement_name}.png", dpi=400)
+
+        
 def plot_impulse(BASE_DIR, measurement_name, linestyles=['-', '--'], colors=['tab:blue', 'tab:green', 'tab:red']):
     fig, ax = plt.subplots(3, 1, figsize=(8, 10), constrained_layout=True)
     fig.suptitle(f"Measurement '{measurement_name}'")
@@ -390,14 +497,17 @@ def plot_impulse(BASE_DIR, measurement_name, linestyles=['-', '--'], colors=['ta
         
         for k in range(int(num_meas)):
             impulse = meas_processor.get_impulse(k, channel)
-            
+            #transfer = meas_processor.get_transfer(k, channel)[1]
+            #impulse = music(2)
             if time_vector is None:
                 time_vector = impulse[0]*10**9  # Set the reference time vector from the first measurement
     
-            all_impulses.append(abs((impulse[1]/np.max(impulse[1]))**2))  # Collect the impulse data
+            impulse_current = 20*np.log10(abs(impulse[1]/np.max(impulse[1]))**2)
+            impulse_current = impulse_current-np.max(impulse_current)
+            all_impulses.append(impulse_current)  # Collect the impulse data
 
             # Plot individual measurements in gray
-            #ax[i].plot(time_vector, abs((impulse[1]/np.max(impulse[1]))**2), linestyles[1], color="gray", alpha=0.3)
+            ax[i].plot(time_vector, impulse_current, linestyles[1], color="gray", alpha=0.2)
 
         # Convert all_impulses to a numpy array for easier manipulation
         all_impulses = np.array(all_impulses)
@@ -426,15 +536,20 @@ def plot_impulse(BASE_DIR, measurement_name, linestyles=['-', '--'], colors=['ta
                             color=colors[i], alpha=0.2, label=f"Standard Deviation")
         
         # Plot settings
-        ax[i].set_xlim([0, 50])
+        ax[i].set_xlim([0, 150])
+        ax[i].set_ylim([-60, 0.5])
         ax[i].set_xlabel("Time (ns)")
-        ax[i].set_ylabel("Magnitude Squared |Impulse|^2")
+        ax[i].set_ylabel("Magnitude Squared |Impulse|^2 [dB]")
         ax[i].set_title(f"Channel {channel+1}")
-        ax[i].grid()
+        ax[i].grid(which='major', linestyle='-', linewidth='0.5', color='gray')
+        ax[i].grid(which='minor', linestyle=':', linewidth='0.5', color='gray', alpha=0.7)
+        
+        ax[i].minorticks_on()
         ax[i].legend()
+
    
     # Save the figure
-    fig.savefig(save_folder_path+f"avg_std_{measurement_name}.png", dpi=400)
+    fig.savefig(save_folder_path+f"impulse_{measurement_name}.png", dpi=400)
     
 def plot_position(BASE_DIR, measurement_data, devices_pos, linestyles=['-', '--'], device_colors=['tab:blue', 'goldenrod', 'tab:red'], ellipse_colors=['tab:green', 'tab:orange', 'tab:purple']):
     fig, axs = plt.subplots(2, 2, figsize=(10, 6), constrained_layout=True)
@@ -518,10 +633,12 @@ devices_pos = np.array([[1.88, 5.10, 7], [2.25, 0.74, 2.25]]) # row0 = x pos, ro
 save_folder_path = "/home/ida/Documents/obsidian/00 Prosjektoppgåve/Fordypningsprosjekt/figures/measurements/"
 #plot_impulse_responses(BASE_DIR, measurement_data)
 measurement_names = ["empty", "reflector", "reflector_rotate", "scatter"]
+
 for measurement_name in measurement_names:
+    #plot_time_domain(BASE_DIR, measurement_name)
+    #plot_transfer(BASE_DIR, measurement_name)
     plot_impulse(BASE_DIR, measurement_name)
-    plot_constellation(BASE_DIR, measurement_name)
-    plot_time_domain(BASE_DIR, measurement_name)
+    #plot_constellation(BASE_DIR, measurement_name)
 #plot_position(BASE_DIR, measurement_data, devices_pos)
 
 
