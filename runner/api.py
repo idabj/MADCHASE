@@ -266,10 +266,13 @@ class MeasurementProcessor:
         fstart = 4
         fstop = 78
 
+        self.fstart = fstart
+        self.fstop = fstop
         tr = np.zeros(len(self.transfer2), dtype=complex)
 
         # Linear regression to find optimum phase slope
         x = np.arange(fstart, fstop, 1)
+        
         ang = np.unwrap(np.angle(self.transfer2))
         A = np.vstack([x, np.ones(len(x))]).T
         xang = np.linalg.lstsq(A, ang[fstart:fstop], rcond=None)[0]
@@ -321,12 +324,11 @@ class MeasurementProcessor:
         # Define frequency array
         N = len(self.transfer)
         sample_rate = 1e6  # Adjust this based on your actual sample rate
-        frequency_vector = np.fft.fftshift(np.fft.fftfreq(N, d=1 / sample_rate))
-        frequency_vector += abs(np.min(frequency_vector))
 
-        logger.info(
-            f"Frequency vector: {frequency_vector.shape} Transfer: {self.transfer.shape}"
-        )
+        frequency_vector = np.linspace(self.fstart, self.fstop, N)
+        #logger.info(
+        #    f"Frequency vector: {frequency_vector.shape} Transfer: {self.transfer.shape}"
+        #)
 
         return frequency_vector, self.transfer, self.sang
 
@@ -366,7 +368,7 @@ class MeasurementProcessor:
         )
         return time_vector, music
     
-    def get_music_peaks(self, index, channel, num_sources=2):
+    def get_music_peaks(self, index, channel, num_sources=3):
         time_vector, music = self.get_music(index, channel, num_sources=num_sources)
         music = 20*np.log10(abs(music)**2)
         music -= np.max(music)
@@ -376,7 +378,7 @@ class MeasurementProcessor:
         
         return time_vector[peaks]*c
     
-    def get_distance_reflector(self, index, channel):
+    def get_distance_reflection(self, index, channel):
         time_vector_peaks = self.get_music_peaks(index, channel)
         
         if len(time_vector_peaks) > 1:
