@@ -1,5 +1,10 @@
 runner/measurements/
+runner/test*
 .vscode/
+*.png
+*.svg
+*test*
+
 # Prerequisites
 *.d
 
