@@ -1,6 +1,7 @@
 from plotter import MeasurementPlotter
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 CH1, CH2, CH3 = 0, 1, 2
 I_LOCAL, Q_LOCAL, I_REMOTE, Q_REMOTE = 0, 1, 2, 3
@@ -24,7 +25,8 @@ devices_pos = np.array(         # row0 = x pos, row1 = y pos
 devices_pos[0,:] += 1
 devices_pos[1,:] += 2
 
-save_folder_path = "/home/ida/Documents/obsidian/00 Prosjektoppgåve/Fordypningsprosjekt/figures/measurements/"
+script_dir = os.path.dirname(os.path.abspath(__file__))
+save_folder_path = os.path.join(script_dir, "measurements")
 measurement_names = ["empty", "empty_2", "reflector", "reflector_rotate", "scatter"]
 measurement_name = measurement_names[2]
 colors_ch = ["yellowgreen", "tab:blue", "darkorange"]
