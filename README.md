@@ -60,6 +60,17 @@ pipreqs .
 This command must be run in the `runner\` directory.
 -->
 
+### Files 
+
+| **File**        | **Description**                                                                                                                                                |
+|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `algorithms.py` | MUSIC algorithm for estimating the impulse response.                                                                                                           |
+| `api.py`        | Class for reading measurements from the file system (after measuring).                                                                                         |
+| `client.py`     | Used for organizing the measurement cycle, sets the roles of the devices and saves the data from each measurement.                                             |
+| `ellipse.py`    | Functions for calculating ellipses, used for plotting and localization.                                                                                        |
+| `main.py`       | Script for taking the measurements, input argument with name of the measurement. The measurements are saved to a folder with the same name as the measurement. |
+| `plot_main.py`  | Creates and saves plots for specified measurements.                                                                                                            |
+| `plotter.py`    | Class for plotting the data, transfer function, impulse response etc.                                                                                          |
 
 ## IQ Sampler
 Firmware for the DKs. Reads UART for roles, then performs the measurements.
