@@ -108,7 +108,16 @@ class Measurement:
 
     def get_distance(self):
         "Return distance measurements for this measurement"
-        return self.fft, self.phase_slope, self.rssi_openspace, self.best, self.highprec
+        return [self.fft,
+                self.phase_slope,
+                self.rssi_openspace,
+                self.best,
+                self.highprec,
+                self.rssi_local,
+                self.rssi_remote,
+                self.txpwr_local,
+                self.txpwr_remote
+                ]
 
 
 class MeasurementFolder:
@@ -206,6 +215,8 @@ class MeasurementProcessor:
             return None
 
         logger.debug(f"iq_data.shape {np.array(iq_data).shape}")
+        
+        # if 
         return np.array(iq_data)
 
     def get_distance(self, index):
@@ -234,7 +245,7 @@ class MeasurementProcessor:
             return None
 
         # Unzip the distance data (fft, phase_slope, etc.) for each file
-        fft, phase_slope, rssi_openspace, best, highprec = zip(*distance_data)
+        fft, phase_slope, rssi_openspace, best, highprec, rssi_local, rssi_remote, txpwr_local, txpwr_remote = zip(*distance_data)
 
         # Convert to numpy arrays if needed for further processing
         fft = np.array(fft)
@@ -250,6 +261,10 @@ class MeasurementProcessor:
             "rssi_openspace": rssi_openspace,
             "best": best,
             "highprec": highprec,
+            "rssi_local": rssi_local,
+            "rssi_remote": rssi_remote,
+            "txpwr_local": txpwr_local,
+            "txpwr_remote": txpwr_remote
         }
 
     def calcTransfer2(self):
@@ -262,38 +277,39 @@ class MeasurementProcessor:
         self.transfer2 = np.multiply(l, r)  # Transfer function: l * r
 
     def calcTransfer(self):
-        """Calculate the transfer function with phase correction."""
-        fstart = 4
-        fstop = 78
+        """Calculate the transfer function with phase correction accounting for multipath effects."""
+        fstart = 4  # Start frequency index
+        fstop = 78  # Stop frequency index
 
         self.fstart = fstart
         self.fstop = fstop
-        tr = np.zeros(len(self.transfer2), dtype=complex)
 
-        # Linear regression to find optimum phase slope
+        # Extract frequency range
         x = np.arange(fstart, fstop, 1)
-        
+
+        # Extract phase angles of the complex numbers
         ang = np.unwrap(np.angle(self.transfer2))
-        A = np.vstack([x, np.ones(len(x))]).T
-        xang = np.linalg.lstsq(A, ang[fstart:fstop], rcond=None)[0]
-        xall = np.arange(0, 80, 1)
-        th_ideal = xang[0] / 2 * xall + xang[1] / 2
+
+ 
+        # Generate ideal phase using fitted parameters
+        xall = np.arange(0, len(self.transfer2), 1)
+
+        # Magnitude of the transfer function
         smag = np.sqrt(np.abs(self.transfer2))
+
+        # Divide phase by 2 for correction
         sang = ang / 2
 
-        # Phase correction to minimize the phase drift
-        for i in range(fstart, fstop):
-            at = th_ideal[i]
-            diff = sang[i] - th_ideal[i]
-            if diff > np.pi:
-                sang[i] = sang[i] - np.pi
-            elif diff < -np.pi:
-                sang[i] = sang[i] + np.pi
+        # Save intermediate results for further analysis
+        self.sang = sang
+        self.smag = smag
 
+
+        # Compute corrected transfer function
         self.transfer = np.multiply(
             smag, np.exp(1j * sang)
         )  # Corrected transfer function
-        self.sang = sang
+
 
     def calcImpulse(self):
         """Calculate the impulse response."""
@@ -363,8 +379,8 @@ class MeasurementProcessor:
             num_sources=num_sources, 
             candidate_delays=time_vector, 
             sampling_frequency=4e6, 
-            num_taps=8, 
-            tap_spacing=2
+            num_taps=8, # original: 8
+            tap_spacing=2 # original 2
         )
         return time_vector, music
     
@@ -373,7 +389,8 @@ class MeasurementProcessor:
         music = 20*np.log10(abs(music)**2)
         music -= np.max(music)
         
-        peaks, _ = signal.find_peaks(music, height=-80)
+        peaks, _ = signal.find_peaks(music, height=[-50,5])
+        peaks = peaks[peaks >= 150]
         c = 3e8
         
         return time_vector[peaks]*c

@@ -24,8 +24,8 @@ def generate_ellipse_param(focal_1, focal_2, refl_total_distance):
     focal_1, focal_2 = np.array(focal_1), np.array(focal_2)
     center = (focal_1 + focal_2) / 2
     direction = focal_1 - focal_2
-    total_distance = refl_total_distance
-    semi_major = total_distance / 2
+    reflected_distance = refl_total_distance
+    semi_major = reflected_distance / 2
 
     # Validate semi-major axis and calculate eccentricity
     if semi_major <= np.linalg.norm(direction) / 2:
@@ -33,15 +33,22 @@ def generate_ellipse_param(focal_1, focal_2, refl_total_distance):
 
     #eccentricity = min((np.linalg.norm(direction) / 2) / semi_major, 1 - 1e-6)
     #semi_minor = semi_major * np.sqrt(1 - eccentricity**2)
-    semi_minor = 1/2*np.sqrt(total_distance**2 - np.linalg.norm(direction)**2)
+    focal_distance = np.linalg.norm(direction)
+    semi_minor = np.sqrt((reflected_distance**2)/4 - (focal_distance**2)/4)
     angle = np.arctan2(direction[1], direction[0])
     return center[0], center[1], semi_major, semi_minor, angle
 
 def find_closest_intersection(ellipses):
-    """Find the closest intersection point to the ellipses."""
-    initial_guess = [0, 0]
-    result = minimize(total_distance, initial_guess, args=(ellipses,), method='BFGS')
+    """Find the point closest to all ellipses using optimization."""
+    # Use the mean of all ellipse centers as the initial guess
+    initial_guess = np.mean([(h, k) for h, k, _, _, _ in ellipses], axis=0)
+    result = minimize(total_distance, initial_guess, args=(ellipses,), method='Powell')
+    
+    if not result.success:
+        raise RuntimeError("Optimization did not converge.")
+    
     return result.x
+
 
 def plot_ellipse(ax, ellipses, color, linestyle):
     """Plot ellipses on the provided axes."""

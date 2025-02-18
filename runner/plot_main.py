@@ -27,12 +27,12 @@ devices_pos[1,:] += 2
 save_folder_path = "/home/ida/Documents/obsidian/00 Prosjektoppgåve/Fordypningsprosjekt/figures/measurements/"
 measurement_names = ["empty", "empty_2", "reflector", "reflector_rotate", "scatter"]
 measurement_name = measurement_names[2]
-colors_ch = ["tab:green", "tab:blue", "tab:red"]
-colors_devices = ["#F57942", "#4550F5", "#93F566"]
+colors_ch = ["yellowgreen", "tab:blue", "darkorange"]
+colors_devices = ["teal", "steelblue", "slateblue"]
 
 # NTNU colors
-colors_ch = ["#D5DF7C", "#9DB7E1", "#F4AC67"]
-colors_devices = ["#7C8934", "#3E628A", "#90552A"]
+#colors_ch = ["#D5DF7C", "#9DB7E1", "#F4AC67"]
+#colors_devices = ["#7C8934", "#3E628A", "#90552A"]
 for measurement_name in measurement_names:
     plotter = MeasurementPlotter(BASE_DIR, save_folder_path, measurement_name, colors_ch, colors_devices)
     plotter.plot()
