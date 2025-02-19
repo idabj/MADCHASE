@@ -12,24 +12,18 @@ def set_initiator(serial_port, folder_path, measurement_number, baud_rate=115200
         baud_rate (int): The baud rate for the serial connection (default: 115200).
         timeout (int): The timeout for reading from the serial port (default: 1 second).
     """
-    data_records = []  # List to store parsed JSON data
+    data_records = [] 
 
-    # Ensure the folder exists
-    #os.makedirs(folder_path, exist_ok=True)
-
-    # Construct the file path
     file_path = folder_path
     
-    # Check if the path is a directory (instead of a file) before opening
     if os.path.isdir(file_path):
         print(f"Error: {file_path} is a directory, not a file!")
-        return  # Exit the function early to avoid further issues
+        return 
 
     try:
-        # Open the file for writing data
+
         with open(file_path, "w") as file:
             try:
-                # Open serial connection
                 with serial.Serial(serial_port, baud_rate, timeout=timeout) as ser:
                     print(f"Connected to {serial_port} at {baud_rate} baud.")
                     ser.write(b'i')
@@ -38,13 +32,10 @@ def set_initiator(serial_port, folder_path, measurement_number, baud_rate=115200
                         line = ser.readline().decode("utf-8").strip()
                         print(f"Received: {line}")
 
-                        # Parse JSON data
                         data = json.loads(line)  # Expecting a JSON object
 
-                        # Store data in the list
                         data_records.append(data)
 
-                        # Write to file
                         json.dump(data, file)
                         file.write("\n")  # Write a newline for separation
 
@@ -60,7 +51,6 @@ def set_initiator(serial_port, folder_path, measurement_number, baud_rate=115200
             finally:
                 print("Serial port closed.")
         
-        # Write the complete list of data records at the end
         with open(file_path, "w") as final_file:
             json.dump(data_records, final_file)
 
