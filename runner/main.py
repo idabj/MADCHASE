@@ -2,7 +2,6 @@ import os
 import datetime
 import time
 from client import set_initiator, set_reflector, set_none
-from dataprocessing import DataPlotter
 
 def take_measurement(serial_ports, timestamped_folder, measurement_number):
     """
@@ -105,13 +104,6 @@ def main():
         # If no data files were generated, skip plotting
         if not data_file_paths:
             continue
-
-        # Plot data for this measurement
-        for data_file_path, j in zip(data_file_paths, range(len(data_file_paths))):
-            # Initialize the DataPlotter with correct absolute file paths
-            print(f"Plotting data for {data_file_path}")
-            plotter = DataPlotter(data_file_path, timestamped_folder, j+1)
-            plotter.plot_data()
 
         # Wait a short time before starting the next measurement
         time.sleep(1.5)
